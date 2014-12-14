@@ -1,0 +1,75 @@
+<html>
+<head>
+
+<style>
+    body {
+        margin: 0;
+        padding: 0;
+        background-color: #0F0000;
+    }
+    .rendererView {
+        position: absolute;
+        display: block;
+        width: 100%;
+        height: 100%;
+    }
+</style>
+
+<script src="js/pixi.js"></script>
+<script src="js/dat.gui.min.js"></script>
+
+</head>
+<body>
+<script>
+    var W = 800;
+    var H = 600;
+
+    var Circle = function() {
+      this.radius = 10
+      this.init = function(stage) {
+        this.graphics = new PIXI.Graphics(0xCCCCCC);
+        this.stage = stage
+        stage.addChild(this.graphics)
+      }
+      this.destroy = function() {
+        this.stage.removeChild(this)
+      }
+      this.render = function() {
+        this.graphics.clear();
+        this.graphics.beginFill(0x000000, 1.0);
+        this.graphics.drawCircle(W/2.0, H/2.0, this.radius);
+      }
+    }
+
+    var circle = new Circle();
+
+    window.onload = function() {
+      var gui = new dat.GUI();
+      gui.add(circle, 'radius', 10, 100);
+    };
+
+    var renderer = PIXI.autoDetectRenderer(W, H);
+    renderer.view.className = "rendererView";
+    document.body.appendChild(renderer.view);
+ 
+    var stage = new PIXI.Stage(0xCCCCCC);
+    circle.init(stage);
+
+    var update = function() {
+      circle.render()
+    }
+
+    var last = new Date().getTime();
+    var animate = function() {
+        var elapsed = new Date().getTime() - last;
+        last = new Date().getTime();
+        update()
+        requestAnimFrame( animate );
+        renderer.render(stage);
+    }
+
+    requestAnimFrame( animate );
+ 
+    </script>
+</body>
+</html>
