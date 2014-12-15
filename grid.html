@@ -1,0 +1,230 @@
+<html>
+<head>
+
+<style>
+    body {
+        margin: 0;
+        padding: 0;
+        background-color: #0F0000;
+    }
+    .rendererView {
+        position: absolute;
+        display: block;
+        width: 100%;
+        height: 100%;
+    }
+</style>
+
+<script src="js/pixi.js"></script>
+<script src="js/dat.gui.min.js"></script>
+
+</head>
+<body>
+<script>
+    var W = 800;
+    var H = 600;
+
+    var Block = function() {
+
+      var radius = 5;
+      var onColor = 0x000000;
+      var ofColor = 0xFFFFFF;
+      var state = true;
+
+      this.setState = function(state) {
+        this.state = state;
+      }
+
+      this.init = function(parent) {
+        this.graphics = new PIXI.Graphics(0xCCCCCC);
+        this.parent = parent;
+        parent.addChild(this.graphics);
+      }
+
+      this.destroy = function() {
+        this.parent.removeChild(this);
+      }
+
+      this.render = function() { 
+        this.graphics.clear(); 
+        if(this.state) {
+          this.graphics.beginFill(this.onColor, 1.0); 
+        } else {
+          this.graphics.beginFill(this.ofColor, 0.0);
+        }
+        this.graphics.drawCircle(0,0,radius);
+      }
+    }
+
+    var Interpreter = function(x, y, w, h, block) {
+     
+      var timerLimit = 1000;
+      var timer = 0;
+
+      this.init = function(parent) {
+        this.graphics = new PIXI.Graphics(0xCCC);
+        this.parent = parent;
+        
+        var cols = 20;
+        var rows = 20;
+
+        this.timer = 0;
+        this.timerLimit = 10;
+
+        parent.addChild(this.graphics);
+        this.graphics.x = x;
+        this.graphics.y = y;
+
+        var blocks = [[]]
+        var tNeighbour = []
+        var lNeighbour = []
+        var rNeighbour = []
+        var bNeighbour = []
+
+        for(var i = 0; i < cols; i++){
+          blocks[i] = [];
+          for(var k = 0; k < rows; k++) {
+            var block = new Block();
+            block.init(this.graphics);
+            block.graphics.x = 10*i;
+            block.graphics.y = 10*k;
+            blocks[i].push(block)
+          }
+        }
+
+        // left neighbours
+        for(var i = 0; i < cols; i++){
+          lNeighbour[i] = [];
+          for(var k = 0; k < rows; k++) {
+            if(i == 0) {
+              lNeighbour[i][k] = blocks[cols - 1][k];
+            } else {
+              lNeighbour[i][k] = blocks[i - 1][k];
+            }
+          }
+        }
+        // top neighbours
+        for(var i = 0; i < cols; i++){
+          tNeighbour[i] = [];
+          for(var k = 0; k < rows; k++) {
+            if(k == 0) {
+              tNeighbour[i][k] = blocks[i][rows - 1];
+            } else {
+              tNeighbour[i][k] = blocks[i][k - 1];
+            }
+          }
+        }
+        // right neighbours
+        for(var i = 0; i < cols; i++){
+          rNeighbour[i] = [];
+          for(var k = 0; k < rows; k++) {
+            if(i == cols - 1) {
+              rNeighbour[i][k] = blocks[0][k];
+            } else {
+              rNeighbour[i][k] = blocks[i + 1][k];
+            }
+          }
+        }
+        // bottom neighbours
+        for(var i = 0; i < cols; i++){
+          bNeighbour[i] = [];
+          for(var k = 0; k < rows; k++) {
+            if(k == rows - 1) {
+              bNeighbour[i][k] = blocks[i][0];
+            } else {
+              bNeighbour[i][k] = blocks[i][k + 1];
+            }
+          }
+        }
+        
+        this.lN = lNeighbour;
+        this.tN = tNeighbour;
+        this.bN = bNeighbour;
+        this.rN = rNeighbour;
+
+        this.blocks = blocks;
+        this.cols = cols;
+        this.rows = rows;
+      }
+
+      this.randomize = function(x, y) {
+        if(Math.random() < 0.5) {
+          this.blocks[x][y].setState(false);
+        } else {
+          this.blocks[x][y].setState(true);
+        }
+      }
+
+      this.randomizeField = function() {
+        for(var i = 0; i < this.rows; i++) {
+          for(var k = 0; k < this.cols; k++) {
+            this.randomize(i,k);
+          }
+        }
+      }
+
+      this.debug = function(x,y) {
+        this.blocks[x][y].color = 0xFF0000;
+        this.lN[x][y].color = 0x00FF00;
+        this.rN[x][y].color = 0x0000FF;
+        this.tN[x][y].color = 0x0FF000;
+        this.bN[x][y].color = 0x00FFFF;
+      }
+
+      this.destroy = function() {
+        this.parent.removeChild(this);
+      }
+
+      this.update = function(elapsed) {
+        if(this.timer > this.timerLimit) {
+          this.timer = 0;
+          this.randomizeField();
+        } else {
+          this.timer += elapsed;
+        }
+        }
+
+      this.render = function() {
+        this.graphics.moveTo(x,y);
+        this.graphics.clear();
+        for(var i = 0; i < this.cols; i++) {
+          for (var k = 0; k < this.rows; k++) {
+            this.blocks[i][k].render();
+          }
+        }
+      }
+    }
+
+    var interpreter = new Interpreter(W/2, H/2, 50, 50, Block);
+
+    window.onload = function() {
+      var gui = new dat.GUI();
+      //gui.add(circle, 'radius', 10, 100);
+    };
+
+    var renderer = PIXI.autoDetectRenderer(W, H);
+    renderer.view.className = "rendererView";
+    document.body.appendChild(renderer.view);
+ 
+    var stage = new PIXI.Stage(0xCCCCCC);
+    interpreter.init(stage);
+
+    var update = function(elapsed) {
+      interpreter.update(elapsed);
+      interpreter.render();
+    }
+
+    var last = new Date().getTime();
+    var animate = function() {
+        var elapsed = new Date().getTime() - last;
+        update(elapsed)
+        renderer.render(stage);
+        last = new Date().getTime();
+        requestAnimFrame( animate );
+    }
+
+    requestAnimFrame( animate );
+ 
+    </script>
+</body>
+</html>
